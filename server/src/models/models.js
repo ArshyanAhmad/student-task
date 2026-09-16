@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import bcryptjs from "bcryptjs";
 
 const userSchema = new Schema(
    {
@@ -76,6 +77,27 @@ const TaskSchema = new Schema(
       timestamps: true,
    },
 );
+
+userSchema.pre("save", async function (next) {
+   if (!this.isModified("password")) return next();
+
+   try {
+      const hashedPassword = await bcryptjs.hash(this.password, 10);
+      this.password = hashedPassword;
+      next();
+   } catch (error) {
+      next(error);
+   }
+});
+
+userSchema.methods.isPasswordCorrect = async function (password) {
+   try {
+      return await bcryptjs.compare(password, this.password);
+   } catch (error) {
+      console.error("Error while comparing passwords:", error);
+      return false;
+   }
+};
 
 export const User = mongoose.model("User", userSchema);
 export const Task = mongoose.model("Task", TaskSchema);
